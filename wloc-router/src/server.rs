@@ -102,11 +102,11 @@ async fn read_limited_body(mut body: Body, max_body_bytes: usize) -> Result<Byte
 
 async fn handle(
     State(state): State<AppState>,
-    headers: HeaderMap,
-    method: Method,
     req: Request<Body>,
 ) -> Response {
     let start = Instant::now();
+    let method = req.method().clone();
+    let headers = req.headers().clone();
     let path = req.uri().path().to_string();
     let path_and_query = req
         .uri()
