@@ -10,10 +10,11 @@ use axum::{
     Router,
 };
 use axum_server::tls_rustls::RustlsConfig;
+use bytes::BytesMut;
 use chrono::SecondsFormat;
+use hyper::body::HttpBody;
 use reqwest::Client;
 use serde::Serialize;
-use tower_http::limit::RequestBodyLimitLayer;
 use tracing::{debug, error, info, warn};
 use tracing_subscriber::EnvFilter;
 
@@ -54,11 +55,9 @@ pub async fn serve(config_path: PathBuf) -> Result<()> {
         cfg: Arc::new(cfg),
         client,
     };
-    let max_body_bytes = app_state.cfg.max_body_bytes;
     let app = Router::new()
         .route("/*path", any(handle))
-        .with_state(app_state)
-        .layer(RequestBodyLimitLayer::new(max_body_bytes));
+        .with_state(app_state);
 
     axum_server::bind_rustls(listen, tls)
         .serve(app.into_make_service_with_connect_info::<SocketAddr>())
@@ -87,6 +86,18 @@ fn build_client(cfg: &Config) -> Result<Client> {
     }
 
     Ok(builder.build()?)
+}
+
+async fn read_limited_body(mut body: Body, max_body_bytes: usize) -> Result<Bytes> {
+    let mut output = BytesMut::new();
+    while let Some(chunk) = body.data().await {
+        let chunk = chunk.context("read request body chunk")?;
+        if output.len().saturating_add(chunk.len()) > max_body_bytes {
+            anyhow::bail!("request body exceeds {max_body_bytes} bytes");
+        }
+        output.extend_from_slice(&chunk);
+    }
+    Ok(output.freeze())
 }
 
 async fn handle(
@@ -126,23 +137,13 @@ async fn handle(
         return (StatusCode::NOT_FOUND, "unsupported path").into_response();
     }
 
-    let body = match hyper::body::to_bytes(req.into_body()).await {
+    let body = match read_limited_body(req.into_body(), state.cfg.max_body_bytes).await {
         Ok(body) => body,
         Err(err) => {
             warn!(%host, %path, error = %err, "failed to read request body");
             return (StatusCode::PAYLOAD_TOO_LARGE, "request body too large").into_response();
         }
     };
-    if body.len() > state.cfg.max_body_bytes {
-        warn!(
-            %host,
-            %path,
-            bytes = body.len(),
-            limit = state.cfg.max_body_bytes,
-            "request body exceeded configured limit"
-        );
-        return (StatusCode::PAYLOAD_TOO_LARGE, "request body too large").into_response();
-    }
 
     match proxy_wloc(&state, &host, &path_and_query, &headers, body).await {
         Ok(resp) => {
@@ -217,7 +218,7 @@ async fn proxy_wloc(
         HeaderValue::from_str(&output.len().to_string())?,
     );
 
-    let mut response = Response::new(Body::from(output));
+    let mut response = output.into_response();
     *response.status_mut() = status;
     *response.headers_mut() = response_headers;
     Ok(response)
@@ -237,7 +238,7 @@ async fn settings_response(state: AppState, query: &[(String, String)]) -> Respo
         StatusCode::BAD_REQUEST
     };
     let body = serde_json::to_vec(&result).unwrap_or_else(|_| b"{\"success\":false}".to_vec());
-    let mut response = Response::new(Body::from(body));
+    let mut response = body.into_response();
     *response.status_mut() = status;
     response.headers_mut().insert(
         header::CONTENT_TYPE,

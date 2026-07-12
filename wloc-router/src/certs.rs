@@ -14,7 +14,8 @@ pub async fn generate(out_dir: &Path) -> Result<()> {
     ca_params.distinguished_name = dn("WLOC Router Local CA");
     let ca_cert = Certificate::from_params(ca_params)?;
 
-    let mut leaf_params = CertificateParams::new(HOSTS.iter().map(|h| h.to_string()).collect());
+    let mut leaf_params =
+        CertificateParams::new(HOSTS.iter().map(|h| h.to_string()).collect::<Vec<_>>());
     leaf_params.distinguished_name = dn("WLOC Router Apple Location MITM");
     let leaf_cert = Certificate::from_params(leaf_params)?;
 
