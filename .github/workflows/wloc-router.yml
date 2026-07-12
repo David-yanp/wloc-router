@@ -28,7 +28,18 @@ jobs:
           rustup default stable
 
       - name: Unit tests
-        run: cargo test
+        run: |
+          set +e
+          cargo test 2>&1 | tee cargo-test.log
+          status=${PIPESTATUS[0]}
+          {
+            echo "## cargo test"
+            echo
+            echo '```text'
+            tail -200 cargo-test.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
 
       - name: Clippy
         run: cargo clippy --all-targets
