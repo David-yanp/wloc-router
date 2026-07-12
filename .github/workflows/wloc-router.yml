@@ -91,7 +91,7 @@ jobs:
           tar -C dist -czf ${{ matrix.artifact }}.tar.gz .
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}
           path: wloc-router/${{ matrix.artifact }}.tar.gz

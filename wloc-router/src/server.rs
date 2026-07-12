@@ -126,13 +126,23 @@ async fn handle(
         return (StatusCode::NOT_FOUND, "unsupported path").into_response();
     }
 
-    let body = match axum::body::to_bytes(req.into_body(), state.cfg.max_body_bytes).await {
+    let body = match hyper::body::to_bytes(req.into_body()).await {
         Ok(body) => body,
         Err(err) => {
             warn!(%host, %path, error = %err, "failed to read request body");
             return (StatusCode::PAYLOAD_TOO_LARGE, "request body too large").into_response();
         }
     };
+    if body.len() > state.cfg.max_body_bytes {
+        warn!(
+            %host,
+            %path,
+            bytes = body.len(),
+            limit = state.cfg.max_body_bytes,
+            "request body exceeded configured limit"
+        );
+        return (StatusCode::PAYLOAD_TOO_LARGE, "request body too large").into_response();
+    }
 
     match proxy_wloc(&state, &host, &path_and_query, &headers, body).await {
         Ok(resp) => {
