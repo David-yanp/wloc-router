@@ -20,23 +20,12 @@ jobs:
         working-directory: wloc-router
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Rust
         run: |
           rustup toolchain install stable --profile minimal --component rustfmt --component clippy
           rustup default stable
-
-      - name: Cache cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            wloc-router/target
-          key: cargo-${{ runner.os }}-${{ hashFiles('wloc-router/Cargo.toml') }}
-          restore-keys: |
-            cargo-${{ runner.os }}-
 
       - name: Unit tests
         run: cargo test
@@ -63,7 +52,7 @@ jobs:
         working-directory: wloc-router
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Rust target
         run: |
@@ -74,18 +63,6 @@ jobs:
       - name: Install target packages
         if: matrix.install != ''
         run: ${{ matrix.install }}
-
-      - name: Cache cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            wloc-router/target
-          key: cargo-${{ runner.os }}-${{ matrix.target }}-${{ hashFiles('wloc-router/Cargo.toml') }}
-          restore-keys: |
-            cargo-${{ runner.os }}-${{ matrix.target }}-
-            cargo-${{ runner.os }}-
 
       - name: Build release
         run: cargo build --release --target ${{ matrix.target }}
@@ -99,7 +76,7 @@ jobs:
           tar -C dist -czf ${{ matrix.artifact }}.tar.gz .
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ matrix.artifact }}
           path: wloc-router/${{ matrix.artifact }}.tar.gz
