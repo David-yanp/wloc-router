@@ -39,6 +39,10 @@ jobs:
             tail -200 cargo-test.log
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$status" -ne 0 ]; then
+            message=$(tail -120 cargo-test.log | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')
+            echo "::error file=wloc-router/Cargo.toml,title=cargo test failed::$message"
+          fi
           exit "$status"
 
       - name: Clippy
