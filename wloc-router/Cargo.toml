@@ -1,0 +1,31 @@
+[package]
+name = "wloc-router"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[dependencies]
+anyhow = "1"
+axum = "0.7"
+axum-server = { version = "0.6", features = ["tls-rustls"] }
+bytes = "1"
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
+clap = { version = "4", features = ["derive", "env"] }
+flate2 = "1"
+http = "1"
+rcgen = "0.12"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "gzip", "http2"] }
+rustls-pemfile = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread", "signal", "fs"] }
+toml = "0.8"
+tower-http = { version = "0.6", features = ["limit"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+url = "2"
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
+strip = "symbols"

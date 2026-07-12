@@ -1,0 +1,23 @@
+# WLOC router-side MITM service.
+# Copy to /etc/wloc-router/config.toml on OpenWrt.
+
+listen = "192.168.1.254:9443"
+state_path = "/etc/wloc-router/state.json"
+cert_path = "/etc/wloc-router/certs/server.pem"
+key_path = "/etc/wloc-router/certs/server-key.pem"
+
+# Leave longitude/latitude unset for pass-through mode until configured by
+# /wloc-settings/save or by filling these values.
+# longitude = -74.0060
+# latitude = 40.7128
+accuracy = 25
+
+log_level = "info"
+upstream_timeout_ms = 10000
+max_body_bytes = 1048576
+
+# Optional loop-prevention for deployments that globally hijack gs-loc DNS.
+# Fill with real Apple edge IPs only if the service cannot resolve upstream.
+# [upstream_resolve]
+# "gs-loc.apple.com" = ["17.253.57.201:443"]
+# "gs-loc-cn.apple.com" = ["17.253.57.202:443"]
