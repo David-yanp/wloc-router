@@ -107,6 +107,7 @@ async fn handle(
     let start = Instant::now();
     let method = req.method().clone();
     let headers = req.headers().clone();
+    let authority = req.uri().authority().map(|v| v.as_str().to_string());
     let path = req.uri().path().to_string();
     let path_and_query = req
         .uri()
@@ -119,7 +120,7 @@ async fn handle(
         .map(parse_query)
         .unwrap_or_default();
 
-    let host = match request_host(&headers) {
+    let host = match request_host(&headers).or(authority.as_deref()) {
         Some(host) if is_allowed_host(host) => canonical_host(host).to_ascii_lowercase(),
         Some(host) => {
             warn!(%host, "rejecting unsupported host");
